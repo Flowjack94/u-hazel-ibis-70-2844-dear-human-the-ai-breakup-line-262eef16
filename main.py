@@ -56,6 +56,16 @@ def main():
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     with open(OUTPUT_PATH, "wb") as f:
         f.write(data)
+    # Read-back verification: what landed on disk must be byte-identical
+    # to the validated entry (catches partial writes / encoding drift).
+    with open(OUTPUT_PATH, "rb") as f:
+        on_disk = f.read()
+    if on_disk != data:
+        print("WRITE MISMATCH: /output/entry.txt differs from entry", file=sys.stderr)
+        return 1
+    if hashlib.sha256(on_disk).hexdigest() != hashlib.sha256(data).hexdigest():
+        print("WRITE MISMATCH: sha256 of /output/entry.txt differs", file=sys.stderr)
+        return 1
     digest = hashlib.sha256(data).hexdigest()
     print("entry (%d chars): %s" % (len(ENTRY), ENTRY))
     print("wrote %s (%d bytes)" % (OUTPUT_PATH, len(data)))
